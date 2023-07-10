@@ -1,4 +1,3 @@
-import argparse
 import io
 import json
 import os
@@ -9,22 +8,7 @@ import pipenv.patched.safety.util
 import pipenv.utils.dependencies
 
 
-def build_parser():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("files", nargs="+")
-    return parser
-
-
-def main(argv=None):
-    # We parse the arguments, but I don't really see the point in doing
-    # something with them. The goal is to scan the Pipfile.lock on every
-    # commit, so we can be sure that no new security vulnerabilities creep into
-    # the project. If we disable telemetry and enable the cache, we avoid
-    # overloading the upstream API.
-    parser = build_parser()
-    parsed_args, args_rest = parser.parse_known_args(argv)
-    print(parsed_args)
-
+def main():
     # Load lockfile.
     if not os.path.exists("Pipfile.lock"):
         return 0

@@ -3,3 +3,5 @@
   description: run pipenv safety check
   entry: safety_check
   language: python
+  always_run: true
+  pass_filenames: false
