@@ -1,0 +1,5 @@
+- id: pipenv-safety-check
+  name: pipenv-safety-check
+  description: run pipenv safety check
+  entry: safety_check
+  language: python
