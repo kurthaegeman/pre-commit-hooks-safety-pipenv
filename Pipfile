@@ -8,6 +8,8 @@ pipenv = "*"
 
 [dev-packages]
 black = "*"
+pytest-cov = "*"
+pytest = "*"
 
 [requires]
 python_version = "3.8"
