@@ -11,7 +11,4 @@ black = "*"
 pytest-cov = "*"
 pytest = "*"
 tox = "*"
-
-[requires]
-python_version = "3.8"
-python_full_version = "3.8.17"
+pre-commit = "*"
