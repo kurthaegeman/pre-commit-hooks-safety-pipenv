@@ -8,7 +8,14 @@ pipenv = "*"
 
 [dev-packages]
 black = "*"
-pytest-cov = "*"
-pytest = "*"
-tox = "*"
+exceptiongroup = { version = "*", python = "< 3.11" }  # for pytest
 pre-commit = "*"
+pytest = "*"
+pytest-cov = "*"
+tomli = { version = "*", python = "< 3.11" }  # for tox
+tox = "*"
+pytest-mock = "*"
+
+[requires]
+python_version = "3.8"
+python_full_version = "3.8.17"

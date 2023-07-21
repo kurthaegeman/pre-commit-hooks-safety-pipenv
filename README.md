@@ -49,3 +49,17 @@ You can also add your custom package categories.
     - id: pipenv-safety-check
       args: ["--categories", "develop default staging"]
 ```
+
+If you configure the hook to scan a package category that does not exist in the
+lock file, `pre-commit-hooks-safety-pipenv` will fail. This is to ensure that a
+simple typo in the configuration does not cause an entire group of dependencies
+to be ignored in the scan.
+
+```
+check pipfile lock for insecure packages.................................Failed
+- hook id: pipenv-safety-check
+- duration: 0.36s
+- exit code: 1
+
+Categories not found: staging
+```

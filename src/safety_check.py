@@ -1,7 +1,6 @@
 import argparse
 import io
 import json
-import os
 import re
 import sys
 
@@ -13,7 +12,7 @@ import pipenv.utils.dependencies
 
 class AppendStringAction(argparse.Action):  # pylint: disable=too-few-public-methods
     def __call__(self, _, namespace, values, option_string=None):
-        parsed = [v for v in re.split(r", *| ", values)]
+        parsed = set(re.split(r", *| ", values))
         setattr(namespace, self.dest, parsed)
 
 
@@ -22,7 +21,7 @@ def parse_commandline_args(argv):
     parser.add_argument(
         "--categories",
         dest="categories",
-        default=["default"],
+        default={"default"},
         action=AppendStringAction,
     )
 
@@ -31,9 +30,9 @@ def parse_commandline_args(argv):
 
 def process_lockdata(lockdata: dict, categories: list) -> list:
     # Collect the dependencies for all selected categories.
-    deps = dict()
+    deps = {}
     for cat in categories:
-        deps.update(lockdata.get(cat))
+        deps.update(lockdata.get(cat, {}))
 
     # Use pipenv to list the requirements.
     pip_deps = pipenv.utils.dependencies.convert_deps_to_pip(
@@ -53,16 +52,31 @@ def process_lockdata(lockdata: dict, categories: list) -> list:
     return vulnerabilities
 
 
-def main() -> int:
-    args = parse_commandline_args(sys.argv[1:])
+def main(argv=None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    args = parse_commandline_args(argv)
 
     # Load lockfile.
-    if not os.path.exists("Pipfile.lock"):
-        return 0
+    try:
+        with open("Pipfile.lock", encoding="utf-8") as fp_lock:
+            pipfile_lock = json.load(fp_lock)
+    except FileNotFoundError:
+        print("Could not find Pipfile.lock")
+        return 1
+    except json.JSONDecodeError:
+        print("Pipfile.lock is not valid JSON")
+        return 1
 
-    # TODO: catch broken lock files
-    with open("Pipfile.lock") as fp:
-        pipfile_lock = json.load(fp)
+    # Check categories. Fail if one doesn't exist.
+    #
+    # It is a design decision to fail if someone configures this hook to run on
+    # a package category that doesn't exist. If this hook would silently ignore
+    # non-existing package groups, a typo could result in an entire group not
+    # being scanned.
+    missing = set(args.categories) - set(pipfile_lock)
+    if missing:
+        print(f"Categories not found: {', '.join(missing)}")
+        return 1
 
     vulnerabilities = process_lockdata(pipfile_lock, categories=args.categories)
 
@@ -74,4 +88,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(main(sys.argv[1:]))  # pragma: no cover

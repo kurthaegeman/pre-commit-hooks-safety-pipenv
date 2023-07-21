@@ -1,7 +1,8 @@
 - id: pipenv-safety-check
-  name: pipenv-safety-check
+  name: check pipfile lock for insecure packages
   description: run pipenv safety check
   entry: safety_check
   language: python
   always_run: true
   pass_filenames: false
+  stages: [commit]
