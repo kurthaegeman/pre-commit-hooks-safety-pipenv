@@ -23,6 +23,8 @@ Add the following repo to your `.pre-commit-config.yaml`:
 
 ## Configuration options
 
+### Specifying package categories
+
 This hook supports specifying [pipenv package
 categories](https://pipenv.pypa.io/en/latest/specifiers/#specifying-package-categories).
 In most cases, you'd just be interested in scanning the dependencies for the
@@ -62,4 +64,25 @@ check pipfile lock for insecure packages.................................Failed
 - exit code: 1
 
 Categories not found: staging
+```
+
+### Other options
+
+To reduce the load on pyup.io and to speed up unit testing the default options are to disable telemetry with caching set to 1hr.
+This is however configurable using the `--telemetry` and `--caching=` arguments
+
+```yaml
+- repo: https://github.com/kurthaegeman/pre-commit-hooks-safety-pipenv
+  rev: 0.0.1
+  hooks:
+    - id: pipenv-safety-check
+      args: ["--telemetry"]
+```
+
+```yaml
+- repo: https://github.com/kurthaegeman/pre-commit-hooks-safety-pipenv
+  rev: 0.0.1
+  hooks:
+    - id: pipenv-safety-check
+      args: ["--caching=1000"]
 ```

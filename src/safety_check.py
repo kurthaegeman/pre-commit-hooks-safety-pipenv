@@ -24,14 +24,16 @@ def parse_commandline_args(argv):
         default={"default"},
         action=AppendStringAction,
     )
+    parser.add_argument("--caching", dest="caching", default=3600, type=int)
+    parser.add_argument("--telemetry", dest="telemetry", action="store_true")
 
     return parser.parse_args(argv)
 
 
-def process_lockdata(lockdata: dict, categories: list) -> list:
+def process_lockdata(lockdata: dict, args: argparse.Namespace) -> list:
     # Collect the dependencies for all selected categories.
     deps = {}
-    for cat in categories:
+    for cat in args.categories:
         deps.update(lockdata.get(cat, {}))
 
     # Use pipenv to list the requirements.
@@ -47,7 +49,10 @@ def process_lockdata(lockdata: dict, categories: list) -> list:
     requirements = io.StringIO("\n".join(pip_deps))
     requirements_read = pipenv.patched.safety.util.read_requirements(requirements)
     vulnerabilities, _ = pipenv.patched.safety.safety.check(
-        requirements_read, ignore_vulns=[], telemetry=False, cached=3600
+        requirements_read,
+        ignore_vulns=[],
+        telemetry=args.telemetry,
+        cached=args.caching,
     )
     return vulnerabilities
 
@@ -78,7 +83,7 @@ def main(argv=None) -> int:
         print(f"Categories not found: {', '.join(missing)}")
         return 1
 
-    vulnerabilities = process_lockdata(pipfile_lock, categories=args.categories)
+    vulnerabilities = process_lockdata(pipfile_lock, args=args)
 
     return (
         pipenv.patched.safety.constants.EXIT_CODE_VULNERABILITIES_FOUND

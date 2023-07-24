@@ -1,3 +1,4 @@
+import argparse
 import json
 from pathlib import Path
 from unittest.mock import mock_open
@@ -36,6 +37,34 @@ def test_parse_commandline_args__categories(argv, expected):
     assert actual.categories == expected
 
 
+@pytest.mark.parametrize(
+    "argv, expected",
+    [
+        ([], False),
+        (["--categories=develop"], False),
+        (["--telemetry"], True),
+    ],
+)
+def test_parse_commandline_args__telemetry(argv, expected):
+    actual = parse_commandline_args(argv)
+    assert actual.telemetry == expected
+
+
+@pytest.mark.parametrize(
+    "argv, expected",
+    [
+        ([], 3600),
+        (["--categories=develop"], 3600),
+        (["--caching=1000"], 1000),
+        (["--caching", "1000"], 1000),
+        (["--caching=0"], 0),
+    ],
+)
+def test_parse_commandline_args__caching(argv, expected):
+    actual = parse_commandline_args(argv)
+    assert actual.caching == expected
+
+
 def load_resources(folder: str):
     files = list((RESOURCE_DIR / folder).rglob("*"))
     ids = [file.name for file in files]
@@ -52,19 +81,28 @@ def pytest_generate_tests(metafunc):
 def test_process_lockdata(resource):
     # TODO: average_pipfile is going to produce vulnerabilities at some point in the future
     test_data = json.loads(resource)
-    vulnerabilities = process_lockdata(test_data, ["default"])
+    vulnerabilities = process_lockdata(
+        test_data,
+        argparse.Namespace(categories=["default"], telemetry=True, caching=3600),
+    )
     assert vulnerabilities == []
 
 
 def test_process_lockdata__vulnerability_found(resource):
     test_data = json.loads(resource)
-    vulnerabilities = process_lockdata(test_data, ["default"])
+    vulnerabilities = process_lockdata(
+        test_data,
+        argparse.Namespace(categories=["default"], telemetry=False, caching=3600),
+    )
     assert len(vulnerabilities) > 0
 
 
 def test_process_lockdata__non_existent_category(resource):
     test_data = json.loads(resource)
-    vulnerabilities = process_lockdata(test_data, ["staging"])
+    vulnerabilities = process_lockdata(
+        test_data,
+        argparse.Namespace(categories=["staging"], telemetry=False, caching=3600),
+    )
     assert vulnerabilities == []
 
 
@@ -82,7 +120,10 @@ def test_process_lockdata__non_existent_category(resource):
 )
 def test_process_lockdata__categories(resource, categories, nrof_vulnerabilities):
     test_data = json.loads(resource)
-    vulnerabilities = process_lockdata(test_data, categories)
+    vulnerabilities = process_lockdata(
+        test_data,
+        argparse.Namespace(categories=categories, telemetry=False, caching=3600),
+    )
     assert len(vulnerabilities) == nrof_vulnerabilities
 
 
