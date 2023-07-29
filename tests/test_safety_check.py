@@ -65,6 +65,33 @@ def test_parse_commandline_args__caching(argv, expected):
     assert actual.caching == expected
 
 
+@pytest.mark.parametrize(
+    "argv, expected",
+    [
+        ([], {}),
+        (["--ignore=1000"], {"1000": {"expires": None, "reason": ""}}),
+        (
+            ["--ignore=1000,2000"],
+            {
+                "1000": {"expires": None, "reason": ""},
+                "2000": {"expires": None, "reason": ""},
+            },
+        ),
+        (["--ignore", "1000"], {"1000": {"expires": None, "reason": ""}}),
+        (
+            ["-i", "1000,2000"],
+            {
+                "1000": {"expires": None, "reason": ""},
+                "2000": {"expires": None, "reason": ""},
+            },
+        ),
+    ],
+)
+def test_parse_commandline_args__ignore(argv, expected):
+    actual = parse_commandline_args(argv)
+    assert actual.ignore == expected
+
+
 def load_resources(folder: str):
     files = list((RESOURCE_DIR / folder).rglob("*"))
     ids = [file.name for file in files]
@@ -81,49 +108,60 @@ def pytest_generate_tests(metafunc):
 def test_process_lockdata(resource):
     # TODO: average_pipfile is going to produce vulnerabilities at some point in the future
     test_data = json.loads(resource)
-    vulnerabilities = process_lockdata(
-        test_data,
-        argparse.Namespace(categories=["default"], telemetry=True, caching=3600),
-    )
+    args = parse_commandline_args([])
+    vulnerabilities = process_lockdata(test_data, args=args)
     assert vulnerabilities == []
 
 
 def test_process_lockdata__vulnerability_found(resource):
     test_data = json.loads(resource)
-    vulnerabilities = process_lockdata(
-        test_data,
-        argparse.Namespace(categories=["default"], telemetry=False, caching=3600),
-    )
+    args = parse_commandline_args([])
+    vulnerabilities = process_lockdata(test_data, args=args)
     assert len(vulnerabilities) > 0
 
 
 def test_process_lockdata__non_existent_category(resource):
     test_data = json.loads(resource)
-    vulnerabilities = process_lockdata(
-        test_data,
-        argparse.Namespace(categories=["staging"], telemetry=False, caching=3600),
-    )
+    args = parse_commandline_args(["--categories=staging"])
+    vulnerabilities = process_lockdata(test_data, args=args)
     assert vulnerabilities == []
 
 
 @pytest.mark.parametrize(
-    "categories, nrof_vulnerabilities",
+    "argv, nrof_vulnerabilities",
     [
-        (["default"], 1),
-        (["develop"], 0),
-        (["staging"], 1),
-        (["default", "develop"], 1),
-        (["develop", "staging"], 1),
-        (["default", "staging"], 2),
-        (["default", "develop", "staging"], 2),
+        ([], 1),
+        (["--categories=develop"], 0),
+        (["--categories=staging"], 1),
+        (["--categories=default,develop"], 1),
+        (["--categories=develop,staging"], 1),
+        (["--categories=default,staging"], 2),
+        (["--categories=default,develop,staging"], 2),
     ],
 )
-def test_process_lockdata__categories(resource, categories, nrof_vulnerabilities):
+def test_process_lockdata__categories(resource, argv, nrof_vulnerabilities):
     test_data = json.loads(resource)
-    vulnerabilities = process_lockdata(
-        test_data,
-        argparse.Namespace(categories=categories, telemetry=False, caching=3600),
-    )
+    args = parse_commandline_args(argv)
+    vulnerabilities = process_lockdata(test_data, args=args)
+    assert len(vulnerabilities) == nrof_vulnerabilities
+
+
+@pytest.mark.parametrize(
+    "argv, nrof_vulnerabilities",
+    [
+        ([], 2),
+        (["--ignore=58758"], 1),
+        (["--ignore", "58713"], 1),
+        (["-i", "58758"], 1),
+        (["--ignore=58758,58713"], 0),
+        (["--ignore", "58758,58713"], 0),
+        (["-i", "58758,58713"], 0),
+    ],
+)
+def test_process_lockdata__ignore(resource, argv, nrof_vulnerabilities):
+    test_data = json.loads(resource)
+    args = parse_commandline_args(argv)
+    vulnerabilities = process_lockdata(test_data, args=args)
     assert len(vulnerabilities) == nrof_vulnerabilities
 
 

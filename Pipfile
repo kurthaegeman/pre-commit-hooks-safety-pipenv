@@ -16,6 +16,10 @@ tomli = { version = "*", python = "< 3.11" }  # for tox
 tox = "*"
 pytest-mock = "*"
 
+[scripts]
+coverage = "python -m pytest --cov=src"
+black = "python -m black src tests"
+
 [requires]
 python_version = "3.8"
 python_full_version = "3.8.17"

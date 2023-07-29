@@ -16,6 +16,15 @@ class AppendStringAction(argparse.Action):  # pylint: disable=too-few-public-met
         setattr(namespace, self.dest, parsed)
 
 
+class TransformIgnoreAction(argparse.Action):  # pylint: disable=too-few-public-methods
+    def __call__(self, _, namespace, values, option_string=None):
+        parsed = set(re.split(r", *| ", values))
+        transformed = dict(
+            zip(parsed, [{"reason": "", "expires": None} for _ in range(len(parsed))])
+        )
+        setattr(namespace, self.dest, transformed)
+
+
 def parse_commandline_args(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -26,6 +35,9 @@ def parse_commandline_args(argv):
     )
     parser.add_argument("--caching", dest="caching", default=3600, type=int)
     parser.add_argument("--telemetry", dest="telemetry", action="store_true")
+    parser.add_argument(
+        "-i", "--ignore", dest="ignore", default={}, action=TransformIgnoreAction
+    )
 
     return parser.parse_args(argv)
 
@@ -50,7 +62,7 @@ def process_lockdata(lockdata: dict, args: argparse.Namespace) -> list:
     requirements_read = pipenv.patched.safety.util.read_requirements(requirements)
     vulnerabilities, _ = pipenv.patched.safety.safety.check(
         requirements_read,
-        ignore_vulns=[],
+        ignore_vulns=args.ignore,
         telemetry=args.telemetry,
         cached=args.caching,
     )

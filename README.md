@@ -66,10 +66,11 @@ check pipfile lock for insecure packages.................................Failed
 Categories not found: staging
 ```
 
-### Other options
+### Telemetry and caching
 
-To reduce the load on pyup.io and to speed up unit testing the default options are to disable telemetry with caching set to 1hr.
-This is however configurable using the `--telemetry` and `--caching=` arguments
+To reduce the load on pyup.io and to speed up unit testing the default options
+are to disable telemetry with caching set to 1hr. This is however configurable
+using the `--telemetry` and `--caching` arguments.
 
 ```yaml
 - repo: https://github.com/kurthaegeman/pre-commit-hooks-safety-pipenv
@@ -85,4 +86,28 @@ This is however configurable using the `--telemetry` and `--caching=` arguments
   hooks:
     - id: pipenv-safety-check
       args: ["--caching=1000"]
+```
+
+### Ignore vulnerabilities
+
+Some of the reported vulnerabilities will have low to no impact on your
+application, or you might want to temporarily ignore them while you or upstream
+are working on a fix. This is where the `--ignore`/`-i` option is useful.
+
+Examples:
+
+```yaml
+- repo: https://github.com/kurthaegeman/pre-commit-hooks-safety-pipenv
+  rev: 0.0.1
+  hooks:
+    - id: pipenv-safety-check
+      args: ["--ignore=1234,4567,89101"]
+```
+
+```yaml
+- repo: https://github.com/kurthaegeman/pre-commit-hooks-safety-pipenv
+  rev: 0.0.1
+  hooks:
+    - id: pipenv-safety-check
+      args: ["-i", "1234,4567,89101"]
 ```
