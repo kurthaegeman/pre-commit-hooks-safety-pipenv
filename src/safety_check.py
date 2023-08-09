@@ -8,6 +8,7 @@ import pipenv.patched.safety.constants
 import pipenv.patched.safety.safety
 import pipenv.patched.safety.util
 import pipenv.utils.dependencies
+from pipenv.vendor import click
 
 
 class AppendStringAction(argparse.Action):  # pylint: disable=too-few-public-methods
@@ -42,6 +43,16 @@ def parse_commandline_args(argv):
     return parser.parse_args(argv)
 
 
+def process_requires(lockdata: dict) -> list:
+    from pipenv.pep508checker import lookup
+
+    failed = []
+    for marker, specifier in lockdata["_meta"]["requires"].items():
+        if marker in lookup and lookup[marker] != specifier:
+            failed.append((marker, specifier, lookup[marker]))
+    return failed
+
+
 def process_lockdata(lockdata: dict, args: argparse.Namespace) -> list:
     # Collect the dependencies for all selected categories.
     deps = {}
@@ -49,19 +60,13 @@ def process_lockdata(lockdata: dict, args: argparse.Namespace) -> list:
         deps.update(lockdata.get(cat, {}))
 
     # Use pipenv to list the requirements.
-    pip_deps = pipenv.utils.dependencies.convert_deps_to_pip(
-        deps=deps,
-        project=None,
-        include_index=False,
-        include_hashes=False,
-        include_markers=False,
-    )
+    pip_deps = pipenv.utils.dependencies.convert_deps_to_pip(deps=deps)
 
     # Avoid disk I/O by loading the requirements to a StringIO object.
     requirements = io.StringIO("\n".join(pip_deps))
-    requirements_read = pipenv.patched.safety.util.read_requirements(requirements)
+    packages = pipenv.patched.safety.util.read_requirements(requirements)
     vulnerabilities, _ = pipenv.patched.safety.safety.check(
-        requirements_read,
+        packages,
         ignore_vulns=args.ignore,
         telemetry=args.telemetry,
         cached=args.caching,
@@ -95,6 +100,22 @@ def main(argv=None) -> int:
         print(f"Categories not found: {', '.join(missing)}")
         return 1
 
+    # Check PEP 508 requirements.
+    if failed := process_requires(pipfile_lock):
+        for fail in failed:
+            marker, specifier, actual = fail
+            click.echo(
+                "Specifier {} does not match {} ({})."
+                "".format(
+                    click.style(marker, fg="green"),
+                    click.style(specifier, fg="cyan"),
+                    click.style(actual, fg="yellow"),
+                ),
+                err=True,
+            )
+        return 1
+
+    # Check for vulnerabilities
     vulnerabilities = process_lockdata(pipfile_lock, args=args)
 
     return (

@@ -3,9 +3,16 @@ import json
 from pathlib import Path
 from unittest.mock import mock_open
 
+import pipenv
 import pytest
+from pipenv import pep508checker
 
-from safety_check import main, parse_commandline_args, process_lockdata
+from safety_check import (
+    main,
+    parse_commandline_args,
+    process_lockdata,
+    process_requires,
+)
 
 RESOURCE_DIR = Path(__file__).parent.resolve() / "resources"
 
@@ -105,6 +112,22 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize("resource", resources, ids=ids)
 
 
+def test_requires(monkeypatch):
+    monkeypatch.setattr(pep508checker, "lookup", {"python_version": "3.8"})
+    test_data = {"_meta": {"requires": {"python_version": "3.8"}}}
+    args = parse_commandline_args([])
+    failed = process_requires(test_data)
+    assert failed == []
+
+
+def test_requires__failure(monkeypatch):
+    monkeypatch.setattr(pep508checker, "lookup", {"python_version": "3.9"})
+    test_data = {"_meta": {"requires": {"python_version": "3.8"}}}
+    args = parse_commandline_args([])
+    failed = process_requires(test_data)
+    assert failed == [("python_version", "3.8", "3.9")]
+
+
 def test_process_lockdata(resource):
     # TODO: average_pipfile is going to produce vulnerabilities at some point in the future
     test_data = json.loads(resource)
@@ -167,6 +190,7 @@ def test_process_lockdata__ignore(resource, argv, nrof_vulnerabilities):
 
 def test_main(mocker, resource):
     mocker.patch("builtins.open", mock_open(read_data=resource))
+    mocker.patch("pipenv.pep508checker.lookup", {})
     return_code = main([])
     assert return_code == 0
 

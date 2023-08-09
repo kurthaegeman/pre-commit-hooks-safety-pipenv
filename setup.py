@@ -4,7 +4,7 @@ setup(
     name="pre-commit-hooks-safety-pipenv",
     description="A pre-commit hook to check your Python pipenv-based project against safety-db",
     url="https://github.com/kurthaegeman/pre-commit-hooks-safety-pipenv",
-    version="0.0.1",
+    version="0.0.3",
     author="Kurt Haegeman",
     author_email="kurt@act1.be",
     classifiers=[
