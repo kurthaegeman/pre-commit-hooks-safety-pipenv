@@ -22,4 +22,4 @@ black = "python -m black src tests"
 
 [requires]
 python_version = "3.8"
-python_full_version = "3.8.17"
+python_full_version = "3.8.18"

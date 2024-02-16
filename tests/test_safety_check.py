@@ -1,13 +1,18 @@
-import argparse
 import json
 from pathlib import Path
 from unittest.mock import mock_open
 
 import pytest
+from pipenv.patched.safety.util import SafetyContext
 
 from safety_check import main, parse_commandline_args, process_lockdata
 
 RESOURCE_DIR = Path(__file__).parent.resolve() / "resources"
+TEST_DATABASE = str(Path(RESOURCE_DIR) / "database")
+
+# Use our local copy of the SafetyDB database for consistent test results.
+safety_context = SafetyContext()
+safety_context.db_mirror = TEST_DATABASE
 
 
 @pytest.mark.parametrize(
@@ -106,7 +111,6 @@ def pytest_generate_tests(metafunc):
 
 
 def test_process_lockdata(resource):
-    # TODO: average_pipfile is going to produce vulnerabilities at some point in the future
     test_data = json.loads(resource)
     args = parse_commandline_args([])
     vulnerabilities = process_lockdata(test_data, args=args)
@@ -130,13 +134,13 @@ def test_process_lockdata__non_existent_category(resource):
 @pytest.mark.parametrize(
     "argv, nrof_vulnerabilities",
     [
-        ([], 1),
+        ([], 2),
         (["--categories=develop"], 0),
         (["--categories=staging"], 1),
-        (["--categories=default,develop"], 1),
+        (["--categories=default,develop"], 2),
         (["--categories=develop,staging"], 1),
-        (["--categories=default,staging"], 2),
-        (["--categories=default,develop,staging"], 2),
+        (["--categories=default,staging"], 3),
+        (["--categories=default,develop,staging"], 3),
     ],
 )
 def test_process_lockdata__categories(resource, argv, nrof_vulnerabilities):

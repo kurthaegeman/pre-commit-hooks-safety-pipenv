@@ -3,6 +3,7 @@ import io
 import json
 import re
 import sys
+from typing import Union
 
 import pipenv.patched.safety.constants
 import pipenv.patched.safety.safety
@@ -51,14 +52,13 @@ def process_lockdata(lockdata: dict, args: argparse.Namespace) -> list:
     # Use pipenv to list the requirements.
     pip_deps = pipenv.utils.dependencies.convert_deps_to_pip(
         deps=deps,
-        project=None,
         include_index=False,
         include_hashes=False,
         include_markers=False,
     )
 
     # Avoid disk I/O by loading the requirements to a StringIO object.
-    requirements = io.StringIO("\n".join(pip_deps))
+    requirements = io.StringIO("\n".join(pip_deps.values()))
     requirements_read = pipenv.patched.safety.util.read_requirements(requirements)
     vulnerabilities, _ = pipenv.patched.safety.safety.check(
         requirements_read,
